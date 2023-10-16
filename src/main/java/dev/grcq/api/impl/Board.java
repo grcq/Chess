@@ -9,10 +9,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static dev.grcq.api.PieceType.KNIGHT;
+
 public class Board implements IBoard {
 
     private Piece[][] board = new Piece[8][8];
     private List<Move> moveHistory = new ArrayList<>();
+
+    private Colour turn;
 
     public Board() {
         this.resetBoard();
@@ -23,7 +27,32 @@ public class Board implements IBoard {
     }
 
     public void resetBoard() {
+        this.board = new Piece[8][8];
+        this.turn = Colour.WHITE;
 
+        this.board[0][0] = new Piece(PieceType.ROOK, Colour.WHITE);
+        this.board[0][1] = new Piece(PieceType.KNIGHT, Colour.WHITE);
+        this.board[0][2] = new Piece(PieceType.BISHOP, Colour.WHITE);
+        this.board[0][3] = new Piece(PieceType.QUEEN, Colour.WHITE);
+        this.board[0][4] = new Piece(PieceType.KING, Colour.WHITE);
+        this.board[0][5] = new Piece(PieceType.BISHOP, Colour.WHITE);
+        this.board[0][6] = new Piece(PieceType.KNIGHT, Colour.WHITE);
+        this.board[0][7] = new Piece(PieceType.ROOK, Colour.WHITE);
+        for (int i = 0; i < 8; i++) {
+            this.board[1][i] = new Piece(PieceType.PAWN, Colour.WHITE);
+        }
+
+        this.board[7][0] = new Piece(PieceType.ROOK, Colour.BLACK);
+        this.board[7][1] = new Piece(PieceType.KNIGHT, Colour.BLACK);
+        this.board[7][2] = new Piece(PieceType.BISHOP, Colour.BLACK);
+        this.board[7][3] = new Piece(PieceType.QUEEN, Colour.BLACK);
+        this.board[7][4] = new Piece(PieceType.KING, Colour.BLACK);
+        this.board[7][5] = new Piece(PieceType.BISHOP, Colour.BLACK);
+        this.board[7][6] = new Piece(PieceType.KNIGHT, Colour.BLACK);
+        this.board[7][7] = new Piece(PieceType.ROOK, Colour.BLACK);
+        for (int i = 0; i < 8; i++) {
+            this.board[6][i] = new Piece(PieceType.PAWN, Colour.BLACK);
+        }
     }
 
     @Override
@@ -58,6 +87,135 @@ public class Board implements IBoard {
     }
 
     private boolean validatePieceMovement(Square from, Square to, PieceType type) {
+        switch (type) {
+            case PAWN:
+                if (this.turn == Colour.WHITE) {
+                    if (from.getFile() != to.getFile()) {
+                        // todo: en passant
+                        return false;
+                    }
+
+                    if (from.getRow() == 1 && from.getRow() + 2 == to.getRow()) {
+                        if (getPiece(to) != null && getPiece(Square.fromRowAndFile(from.getRow() + 1, from.getFile())) != null) return false;
+                        return true;
+                    }
+
+                    if (from.getRow() + 1 == to.getRow()) {
+                        if (getPiece(to) != null) return false;
+                        return true;
+                    }
+                } else {
+                    if (from.getFile() != to.getFile()) {
+                        // todo: en passant
+                        return false;
+                    }
+
+                    if (from.getRow() == 6 && from.getRow() - 2 == to.getRow()) {
+                        if (getPiece(to) != null && getPiece(Square.fromRowAndFile(from.getRow() - 1, from.getFile())) != null) return false;
+                        return true;
+                    }
+
+                    if (from.getRow() - 1 == to.getRow()) {
+                        if (getPiece(to) != null) return false;
+                        return true;
+                    }
+                }
+            case KNIGHT:
+                if (Math.abs(from.getRow() - to.getRow()) == 2 && Math.abs(from.getFile() - to.getFile()) == 1) return true;
+                if (Math.abs(from.getRow() - to.getRow()) == 1 && Math.abs(from.getFile() - to.getFile()) == 2) return true;
+                break;
+            case BISHOP:
+                if (Math.abs(from.getRow() - to.getRow()) == Math.abs(from.getFile() - to.getFile())) {
+                    int row = from.getRow();
+                    int file = from.getFile();
+                    int rowDiff = (from.getRow() < to.getRow() ? 1 : -1);
+                    int fileDiff = (from.getFile() < to.getFile() ? 1 : -1);
+
+                    while (row != to.getRow() && file != to.getFile()) {
+                        row += rowDiff;
+                        file += fileDiff;
+
+                        if (getPiece(Square.fromRowAndFile(row, file)) != null) return false;
+                    }
+
+                    return true;
+                }
+                break;
+            case ROOK:
+                if (from.getRow() == to.getRow()) {
+                    int file = from.getFile();
+                    int fileDiff = (from.getFile() < to.getFile() ? 1 : -1);
+
+                    while (file != to.getFile()) {
+                        file += fileDiff;
+
+                        if (getPiece(Square.fromRowAndFile(from.getRow(), file)) != null) return false;
+                    }
+
+                    return true;
+                }
+
+                if (from.getFile() == to.getFile()) {
+                    int row = from.getRow();
+                    int rowDiff = (from.getRow() < to.getRow() ? 1 : -1);
+
+                    while (row != to.getRow()) {
+                        row += rowDiff;
+
+                        if (getPiece(Square.fromRowAndFile(row, from.getFile())) != null) return false;
+                    }
+
+                    return true;
+                }
+                break;
+            case QUEEN:
+                if (Math.abs(from.getRow() - to.getRow()) == Math.abs(from.getFile() - to.getFile())) {
+                    int row = from.getRow();
+                    int file = from.getFile();
+                    int rowDiff = (from.getRow() < to.getRow() ? 1 : -1);
+                    int fileDiff = (from.getFile() < to.getFile() ? 1 : -1);
+
+                    while (row != to.getRow() && file != to.getFile()) {
+                        row += rowDiff;
+                        file += fileDiff;
+
+                        if (getPiece(Square.fromRowAndFile(row, file)) != null) return false;
+                    }
+
+                    return true;
+                }
+
+                if (from.getRow() == to.getRow()) {
+                    int file = from.getFile();
+                    int fileDiff = (from.getFile() < to.getFile() ? 1 : -1);
+
+                    while (file != to.getFile()) {
+                        file += fileDiff;
+
+                        if (getPiece(Square.fromRowAndFile(from.getRow(), file)) != null) return false;
+                    }
+
+                    return true;
+                }
+
+                if (from.getFile() == to.getFile()) {
+                    int row = from.getRow();
+                    int rowDiff = (from.getRow() < to.getRow() ? 1 : -1);
+
+                    while (row != to.getRow()) {
+                        row += rowDiff;
+
+                        if (getPiece(Square.fromRowAndFile(row, from.getFile())) != null) return false;
+                    }
+
+                    return true;
+                }
+                break;
+            case KING:
+                if (Math.abs(from.getRow() - to.getRow()) <= 1 && Math.abs(from.getFile() - to.getFile()) <= 1) return true;
+                break;
+        }
+
         return false;
     }
 
@@ -84,6 +242,10 @@ public class Board implements IBoard {
             Square from = Square.values()[i];
             for (int j = 0; j < Square.values().length; j++) {
                 Square to = Square.values()[j];
+                Piece piece = getPiece(from);
+                if (piece == null) continue;
+                if (piece.getColour() != turn) continue;
+
                 Move move = new Move(from.getNotation(), to.getNotation());
 
                 if (validateMove(move) && (
@@ -98,6 +260,8 @@ public class Board implements IBoard {
     @Nullable
     @Override
     public Piece getPiece(Square square) {
+        if (square == null) return null;
+
         int row = square.getRow();
         int file = square.getFile();
         return this.board[row][file];
@@ -121,7 +285,7 @@ public class Board implements IBoard {
     }
 
     public boolean isCheck() {
-        return getLastMove().isCheck();
+        return (getLastMove() != null && getLastMove().isCheck());
     }
 
     @Nullable
@@ -177,6 +341,11 @@ public class Board implements IBoard {
     }
 
     private Move getLastMove() {
-        return moveHistory.get(moveHistory.size() - 1);
+        return getLastMove(turn);
+    }
+
+    private Move getLastMove(Colour colour) {
+        if ((colour == turn && moveHistory.size() < 2) || moveHistory.isEmpty()) return null;
+        return (colour == turn ? moveHistory.get(moveHistory.size() - 2) : moveHistory.get(moveHistory.size() - 1));
     }
 }

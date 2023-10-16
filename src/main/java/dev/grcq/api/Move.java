@@ -27,4 +27,9 @@ public class Move {
     private boolean castle = false;
     private char castleSide = '-';
 
+    @Override
+    public String toString() {
+        return from + " -> " + to;
+    }
+
 }
