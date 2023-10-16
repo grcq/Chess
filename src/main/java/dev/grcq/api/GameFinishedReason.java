@@ -1,0 +1,14 @@
+package dev.grcq.api;
+
+public enum GameFinishedReason {
+
+    THREE_FOLD_REPETITION,
+    FIFTY_MOVE_RULE,
+    STALEMATE,
+    INSUFFICIENT_MATERIAL,
+    TIMEOUT_AND_INSUFFICIENT_MATERIAL,
+
+    TIMEOUT,
+    CHECKMATE,
+
+}
