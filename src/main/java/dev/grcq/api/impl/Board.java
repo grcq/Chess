@@ -1,12 +1,10 @@
 package dev.grcq.api.impl;
 
 import dev.grcq.api.*;
+import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static dev.grcq.api.PieceType.KNIGHT;
@@ -16,19 +14,24 @@ public class Board implements IBoard {
     private Piece[][] board = new Piece[8][8];
     private List<Move> moveHistory = new ArrayList<>();
 
+    @Getter
     private Colour turn;
+    private Map<Colour, Side> castledSide;
+    private Map<Colour, Boolean> movedRightRook;
+    private Map<Colour, Boolean> movedLeftRook;
 
     public Board() {
-        this.resetBoard();
+        this("");
     }
 
     public Board(String fen) {
-        this();
+        this.resetBoard();
     }
 
     public void resetBoard() {
         this.board = new Piece[8][8];
         this.turn = Colour.WHITE;
+        this.castledSide = new HashMap<>();
 
         this.board[0][0] = new Piece(PieceType.ROOK, Colour.WHITE);
         this.board[0][1] = new Piece(PieceType.KNIGHT, Colour.WHITE);
@@ -237,20 +240,31 @@ public class Board implements IBoard {
     }
 
     public Move[] getMoves(boolean checkOnly) {
+        return getMoves(checkOnly, turn);
+    }
+
+    protected Move[] getMoves(boolean checkOnly, Colour colour) {
         List<Move> moves = new ArrayList<>();
         for (int i = 0; i < Square.values().length; i++) {
-            Square from = Square.values()[i];
             for (int j = 0; j < Square.values().length; j++) {
+                Square from = Square.values()[i];
                 Square to = Square.values()[j];
                 Piece piece = getPiece(from);
                 if (piece == null) continue;
-                if (piece.getColour() != turn) continue;
+                if (piece.getColour() != colour) continue;
 
                 Move move = new Move(from.getNotation(), to.getNotation());
+
+                Piece captured = getPiece(to);
+                if (captured != null) {
+                    move.setCapture(true);
+                    move.setCapturedType(captured.getType());
+                }
 
                 if (validateMove(move) && (
                         !checkOnly || (getPiece(to) != null && getPiece(to).getType() == PieceType.KING)
                 )) moves.add(move);
+
             }
         }
 
@@ -288,6 +302,14 @@ public class Board implements IBoard {
         return (getLastMove() != null && getLastMove().isCheck());
     }
 
+    public boolean canCastle() {
+        return canCastle(turn);
+    }
+
+    public boolean canCastle(Colour colour) {
+        return castledSide.get(colour) == null;
+    }
+
     @Nullable
     @Override
     public GameFinishedReason getGameOverReason() {
@@ -314,7 +336,7 @@ public class Board implements IBoard {
                 a = false;
 
                 PieceType type = piece.getType();
-                str.append((piece.getColour() == Colour.WHITE ? (type.getId() + "").toUpperCase() : type.getId()));
+                str.append((piece.getColour() == Colour.BLACK ? (type.getId() + "").toUpperCase() : type.getId()));
             }
 
             if (a) str.append(k);
@@ -322,22 +344,46 @@ public class Board implements IBoard {
         }
 
         str.deleteCharAt(str.length() - 1);
+        str.append(" ")
+                .append(turn.getId())
+                .append(" ");
+        if (canCastle(Colour.WHITE)) str.append("KQ");
+        if (canCastle(Colour.BLACK)) str.append("kq");
+
+        str.append(" - 0 1");
         return str.toString();
     }
 
     @Override
     public void move(Move move) {
+        Square from = Square.fromNotation(move.getFrom());
+        Square to = Square.fromNotation(move.getTo());
 
+        if (!validateMove(move)) return;
+
+        Piece piece = getPiece(from);
+        if (piece == null) return;
+
+        board[from.getRow()][from.getFile()] = null;
+        board[to.getRow()][to.getFile()] = piece;
+
+        moveHistory.add(move);
     }
 
     @Override
     public Move undo() {
-        return moveHistory.remove(moveHistory.size() - 1);
-    }
+        if (moveHistory.isEmpty()) return null;
+        Move move = moveHistory.remove(moveHistory.size() - 1);
+        Square returnTo = Square.fromNotation(move.getFrom());
+        Square from = Square.fromNotation(move.getTo());
 
-    @Override
-    public Move undo(Move move) {
-        return null;
+        Piece piece = getPiece(from);
+        if (piece == null) return null;
+
+        this.board[from.getRow()][from.getFile()] = null;
+        this.board[returnTo.getRow()][returnTo.getFile()] = piece;
+
+        return move;
     }
 
     private Move getLastMove() {
@@ -347,5 +393,29 @@ public class Board implements IBoard {
     private Move getLastMove(Colour colour) {
         if ((colour == turn && moveHistory.size() < 2) || moveHistory.isEmpty()) return null;
         return (colour == turn ? moveHistory.get(moveHistory.size() - 2) : moveHistory.get(moveHistory.size() - 1));
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder("━━━━━━━━━━━━━━━━━━━━\n");
+        for (int i = 7; i >= 0; --i) {
+            builder.append("| ");
+            for (int j = 7; j >= 0; --j) {
+                Piece piece = this.board[i][j];
+                if (piece == null) {
+                    builder.append("* ");
+                    continue;
+                }
+
+                builder.append(
+                        piece.getColour() == Colour.WHITE ? piece.getType().getId() : (piece.getType().getId() + "").toUpperCase()
+                )
+                        .append(" ");
+            }
+            builder.append("|\n");
+        }
+
+        builder.append("━━━━━━━━━━━━━━━━━━━━");
+        return builder.toString();
     }
 }

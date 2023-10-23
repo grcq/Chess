@@ -7,12 +7,12 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum PieceType {
 
-    KING(999, "King", 'k'),
-    QUEEN(999, "King", 'q'),
-    ROOK(999, "King", 'r'),
-    BISHOP(999, "Bishop", 'b'),
-    KNIGHT(999, "Knight", 'n'),
-    PAWN(1, "Pawn", 'p'),
+    KING(99999, "King", 'k'),
+    QUEEN(900, "King", 'q'),
+    ROOK(500, "King", 'r'),
+    BISHOP(320, "Bishop", 'b'),
+    KNIGHT(300, "Knight", 'n'),
+    PAWN(100, "Pawn", 'p'),
     NONE(0, null, '-');
 
     private final int value;

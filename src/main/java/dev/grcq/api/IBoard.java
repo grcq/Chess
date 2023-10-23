@@ -22,8 +22,6 @@ public interface IBoard {
 
     void move(Move move);
 
-    Move undo(Move move);
-
     Move undo();
 
 }
