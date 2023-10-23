@@ -53,8 +53,7 @@ public class ChessAI {
     private int evaluate() {
         int score = 0;
 
-        for (int i = 0; i < 64; i++) {
-            Square square = Square.values()[i];
+        for (Square square : Square.values()) {
             Piece piece = board.getPiece(square);
             if (piece == null) continue;
 
